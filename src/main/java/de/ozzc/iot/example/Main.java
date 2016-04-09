@@ -2,6 +2,8 @@ package de.ozzc.iot.example;
 
 import de.ozzc.iot.util.SslUtil;
 import org.eclipse.paho.client.mqttv3.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -9,36 +11,37 @@ import org.eclipse.paho.client.mqttv3.*;
  */
 public class Main {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
 
-        String serverUrl = "ssl://*.iot.eu-central-1.amazonaws.com:8883";
-        MqttClient client = new MqttClient(serverUrl, "MyNewThing", null);
-        client.setCallback(new MyCallback());
-        MqttConnectOptions options = new MqttConnectOptions();
-        options.setConnectionTimeout(60);
-        options.setKeepAliveInterval(60);
-        options.setSocketFactory(SslUtil.getSocketFactory("root-ca.pem.key", "*-certificate.pem.crt", "*-private.pem.key"));
-        client.connect(options);
-        client.subscribe("MyTopic", 0);
-        client.publish("MyTopic", new MqttMessage("Hello World".getBytes()));
-        client.close();
-    }
+        final int qos = 0;
+        final String topicName = "MyTopic";
+        final String message = "Hello World!";
+        final long quiesceTimeout = 5000;
 
-    private static class MyCallback implements MqttCallback {
-        @Override
-        public void connectionLost(Throwable cause) {
-            System.out.println("connectionLost");
+        // This information we get from AWS after registering and activating a thing
+        final String thingName = "MyNewThing";
+        final String serverUrl = "ssl://*.iot.*.amazonaws.com:8883";
+        final String rootCaCertFile = "root-ca.pem.key";
+        final String clientCertFile = "*-certificate.pem.crt";
+        final String clientPrivateKeyFile = "*-private.pem.key";
+
+        try {
+            MqttConnectOptions options = new MqttConnectOptions();
+            options.setSocketFactory(SslUtil.getSocketFactory(rootCaCertFile, clientCertFile, clientPrivateKeyFile));
+            options.setCleanSession(true);
+
+            MqttClient client = new MqttClient(serverUrl, thingName);
+            client.setCallback(new ExampleCallback());
+            client.connect(options);
+            client.subscribe(topicName, qos);
+            client.publish(topicName, new MqttMessage(message.getBytes()));
+            client.disconnect(quiesceTimeout);
+            client.close();
         }
-
-        @Override
-        public void messageArrived(String topic, MqttMessage message) throws Exception {
-            System.out.println("Message Arrive. Topic : " + topic + " , Message : " + message.toString());
-        }
-
-        @Override
-        public void deliveryComplete(IMqttDeliveryToken token) {
-            System.out.println("deliveryComplete");
+        catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
         }
     }
 }

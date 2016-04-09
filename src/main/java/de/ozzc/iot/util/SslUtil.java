@@ -37,11 +37,14 @@ public class SslUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SslUtil.class);
 
-    private static final char[] KEY_STORE_PASSWORD = "11!!one!".toCharArray();
+    private static final char[] KEY_STORE_PASSWORD = "Dummy11!!one!".toCharArray();
     private static final String BC_PROVIDER_ID = "BC";
     private static final String TLS_VERSION = "TLSv1.2";
 
-    public static SSLSocketFactory getSocketFactory(final String rootCaCertFile, final String clientCertFile, final String privateKeyFile) throws Exception {
+    public static SSLSocketFactory getSocketFactory(final String rootCaCertFile,
+                                                    final String clientCertFile,
+                                                    final String privateKeyFile) throws Exception {
+
         if (Security.getProvider(BC_PROVIDER_ID) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
@@ -49,38 +52,37 @@ public class SslUtil {
         X509Certificate rootCaCert = getX509Certificate(rootCaCertFile);
         X509Certificate clientCaCert = getX509Certificate(clientCertFile);
 
-        PEMKeyPair clientKeyPair = null;
-        try (PEMParser clientPrivateKeyParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(Files.readAllBytes(Paths.get(privateKeyFile)))))) {
+        PEMKeyPair clientKeyPair;
+        try (PEMParser clientPrivateKeyParser =
+                     new PEMParser(new InputStreamReader(new ByteArrayInputStream(Files.readAllBytes(Paths.get(privateKeyFile)))))) {
             clientKeyPair = (PEMKeyPair) clientPrivateKeyParser.readObject();
         } catch (IOException e) {
             LOGGER.error("Failed to load private key file at {} with error: {}", privateKeyFile, e.getMessage());
             throw e;
         }
 
-        // CA certificate is used to authenticate server
-        KeyStore caKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        // Root CA certificate is used to authenticate the server
+        final KeyStore caKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
         caKeyStore.load(null, null);
         caKeyStore.setCertificateEntry("ca-certificate", rootCaCert);
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        tmf.init(caKeyStore);
+        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(caKeyStore);
 
-        // client key and certificates are sent to server so it can authenticate us
-        final PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(
-                clientKeyPair.getPrivateKeyInfo().getEncoded());
-        final KeyFactory kf = KeyFactory.getInstance("RSA");
-        final PrivateKey clientKey = kf.generatePrivate(spec);
+        // client key and certificates are sent to server for client authentication on the server
+        final KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        final PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(clientKeyPair.getPrivateKeyInfo().getEncoded());
+        final PrivateKey clientKey = keyFactory.generatePrivate(spec);
 
-        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-        ks.load(null, null);
-        ks.setCertificateEntry("client", clientCaCert);
-        ks.setKeyEntry("key", clientKey, KEY_STORE_PASSWORD, new Certificate[]{clientCaCert});
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        kmf.init(ks, KEY_STORE_PASSWORD);
+        KeyStore clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        clientKeyStore.load(null, null);
+        clientKeyStore.setCertificateEntry("client", clientCaCert);
+        clientKeyStore.setKeyEntry("key", clientKey, KEY_STORE_PASSWORD, new Certificate[]{clientCaCert});
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(clientKeyStore, KEY_STORE_PASSWORD);
 
-        // finally, create SSL socket factory
+        // SSL socket factory
         SSLContext context = SSLContext.getInstance(TLS_VERSION);
-        context.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-
+        context.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
         return context.getSocketFactory();
     }
 
