@@ -6,7 +6,7 @@
 
 if [ $# -ne 1 ]; then
     echo "Usage: ./delete-aws-iot-thing.sh <Thing>"
-    echo "<Thing> is a name for the Thing you would like to delete."
+    echo "<Thing> is a name for the IoT Thing you would like to delete."
 else
     PRINCIPAL_ARN=$(aws iot list-thing-principals --thing-name $1 | jq -r ".principals[0]")
     aws iot detach-thing-principal --thing-name $1 --principal ${PRINCIPAL_ARN}
