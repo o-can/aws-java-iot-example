@@ -4,7 +4,7 @@
 #
 # This script will register an IoT thing. Create, download and attach the keys and certificates and attach an all topics/actions policy to the certificates and the IoT Thing.
 
-if [ $# -eq 1 ]; then
+if [ $# -ne 1 ]; then
     echo "Usage: ./create-aws-iot-thing.sh <Thing>"
     echo "<Thing> is a name for the Thing you would like to create."
 else
