@@ -6,7 +6,7 @@
 
     <groupId>de.ozzc</groupId>
     <artifactId>aws-iot-java-example</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
     <name>AWS IoT Java Starter Project</name>
     <description>Starting point example project in Java for the AWS IoT service to be used on a RasPi or any embedded device with an up-to-date JRE.</description>
 
@@ -85,6 +85,7 @@
     </dependencies>
 
     <build>
+        <finalName>aws-iot-java-example</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
