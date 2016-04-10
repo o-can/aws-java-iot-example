@@ -2,6 +2,7 @@
 Starting point example project in Java for the AWS IoT service to be used on a Rasberry Pi or any internet connectivity capable device with an up-to-date Java Runtime Environment.
 
 The code in this example demonstrates how to:
+
 1. Connect to a configurable AWS IoT Endpoint with TLSv1.2.
 2. Subscribes to a topic called "MyTopic"
 3. Publishes a "Hello World" message to the topic "MyTopic"
