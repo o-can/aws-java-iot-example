@@ -20,7 +20,7 @@ In addition to this software you need to register an IoT device on the AWS IoT d
 For convenience, there are two shell scripts in this project which will setup and tear down an IoT device on the AWS IoT service.
 
 * [create-aws-iot-thing.sh](create-aws-iot-thing.sh)
-* [delete-aws-iot-thing.sh](delete-aws-iot-thing.sh])
+* [delete-aws-iot-thing.sh](delete-aws-iot-thing.sh)
 
 The create-aws-iot-thing script will also create a ready to go configuration for the example project and download the necessary certificates and keys to the working directory.
 
