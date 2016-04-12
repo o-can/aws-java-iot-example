@@ -6,6 +6,7 @@ The code in this example demonstrates how to:
 1. Connect to a configurable AWS IoT Endpoint with TLSv1.2.
 2. Subscribes to a topic called "MyTopic"
 3. Publishes a "Hello World" message to the topic "MyTopic"
+4. Creates a device shadow state and updates it
 
 ## Getting Started
 
