@@ -27,9 +27,11 @@ public class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
-    private static final int QOS_LEVEL = 0;
+    private static final int QOS_LEVEL0 = 0;
+    private static final int QOS_LEVEL1 = 1;
     private static final String TOPIC = "MyTopic";
     private static final String MESSAGE = "Hello World!";
+    private static final byte[] EMPTY_MESSAGE = "".getBytes();
     private static final long QUIESCE_TIMEOUT = 5000;
 
     public static void main(String[] args) {
@@ -55,12 +57,25 @@ public class Main {
             MqttClient client = new MqttClient(serverUrl, clientId);
             client.setCallback(new ExampleCallback());
             client.connect(options);
-            client.subscribe(TOPIC, QOS_LEVEL);
+            client.subscribe(TOPIC, QOS_LEVEL0);
             client.publish(TOPIC, new MqttMessage(MESSAGE.getBytes()));
 
+            //Shadow State Get
+            final String shadowGetTopic = "$aws/things/"+clientId+"/shadow/get";
+            final String shadowGetAcceptedTopic = "$aws/things/"+clientId+"/shadow/get/accepted";
+            final String shadowGetRejectedTopic = "$aws/things/"+clientId+"/shadow/get/rejected";
+            client.subscribe(shadowGetAcceptedTopic, QOS_LEVEL1);
+            client.subscribe(shadowGetRejectedTopic, QOS_LEVEL1);
+
+
+            MqttMessage EMPTY_MQTT_MESSAGE = new MqttMessage(EMPTY_MESSAGE);
+            EMPTY_MQTT_MESSAGE.setQos(QOS_LEVEL1);
+            client.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
+
+
             // Remove the disconnect and close, if you want to continue listening/subscribing
-            client.disconnect(QUIESCE_TIMEOUT);
-            client.close();
+            //client.disconnect(QUIESCE_TIMEOUT);
+            //client.close();
         }
         catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
