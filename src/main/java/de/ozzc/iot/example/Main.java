@@ -52,7 +52,8 @@ public class Main {
     // http://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
     private static final boolean CLEAN_SESSION = true;
 
-
+    // Rime in milliseconds to allow for existing work to finish before disconnecting
+    // @see org.eclipse.paho.client.mqttv3.IMqttAsyncClient#disconnect(long)
     private static final long QUIESCE_TIMEOUT = 5000;
 
     public static void main(String[] args) {

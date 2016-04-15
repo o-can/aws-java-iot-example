@@ -5,12 +5,12 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Properties helper class with additional cleanup/trim
+ * Helper class encapsulating a Properties Object loaded from a config file.
  *
  * @see Properties
  * @author Ozkan Can
  */
-public class IoTConfig extends Properties {
+public class IoTConfig {
 
     public enum ConfigFields {
         AWS_IOT_MQTT_HOST,
@@ -22,8 +22,10 @@ public class IoTConfig extends Properties {
         AWS_IOT_PRIVATE_KEY_FILENAME
     }
 
+    private final Properties properties = new Properties();
+
     public IoTConfig(final String configFileName) throws IOException {
-        this.load(new FileInputStream(configFileName));
+        properties.load(new FileInputStream(configFileName));
     }
 
     /**
@@ -33,11 +35,11 @@ public class IoTConfig extends Properties {
      *
      * @param field The key under which to retrieve the value. @See ConfigFields
      * @param defaultValue The default value is returned when they key is not defined in the properties
-     * @return String or null, if key is null.
+     * @return String or null, if key is null or value not set.
      */
     public String get(final ConfigFields field, String defaultValue) {
         if(field == null) return null;
-        String value = getProperty(field.name(), defaultValue);
+        String value = properties.getProperty(field.name(), defaultValue);
         if (value != null) {
             value = value.replace("\"", "");
             value = value.trim();
@@ -49,11 +51,11 @@ public class IoTConfig extends Properties {
      * Searches for the property with the specified key in this IoTConfig.
      *
      * @param field The key under which to retrieve the value. @See ConfigFields
-     * @return String or null, if key is null.
+     * @return String or null, if key is null or value not set.
      */
     public String get(final ConfigFields field) {
         if(field == null) return null;
-        String value = getProperty(field.name());
+        String value = properties.getProperty(field.name());
         if (value != null) {
             value = value.replace("\"", "");
             value = value.trim();
