@@ -97,9 +97,30 @@ public class Main {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     try {
+                        LOGGER.info("Successfully connected to "+serverURI);
                         asyncClient.setCallback(new ExampleCallback());
-                        asyncClient.subscribe(TOPIC, QOS_1);
-                        asyncClient.publish(TOPIC, HELLO_WORLD_MQTT_MESSAGE);
+                        asyncClient.subscribe(TOPIC, QOS_1, null, new IMqttActionListener() {
+                            @Override
+                            public void onSuccess(IMqttToken asyncActionToken) {
+                                LOGGER.info("Successfully subscribed to Topic: "+TOPIC);
+                            }
+
+                            @Override
+                            public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                                LOGGER.info("Failed to subscribe to Topic: "+TOPIC);
+                            }
+                        });
+                        asyncClient.publish(TOPIC, HELLO_WORLD_MQTT_MESSAGE, null, new IMqttActionListener() {
+                            @Override
+                            public void onSuccess(IMqttToken asyncActionToken) {
+                                LOGGER.info("Successfully published message on Topic: "+TOPIC);
+                            }
+
+                            @Override
+                            public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                                LOGGER.info("Failed to publish message on Topic: "+TOPIC);
+                            }
+                        });
 
 
                         //Shadow State Get
@@ -117,7 +138,9 @@ public class Main {
                         asyncClient.close();
                     } catch (MqttException e) {
                         LOGGER.error(e.getMessage(), e);
-                    } finally {
+                    }
+/*
+                    finally {
                         if (asyncClient.isConnected()) {
                             try {
                                 asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
@@ -127,11 +150,13 @@ public class Main {
                             }
                         }
                     }
+*/
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-
+                    LOGGER.info("Failed to connect to "+serverURI);
+                    LOGGER.error(exception.getMessage(), exception);
                 }
             });
         } catch (MqttException e) {
