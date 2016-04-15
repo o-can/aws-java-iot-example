@@ -7,7 +7,8 @@ import java.util.Properties;
 /**
  * Properties helper class with additional cleanup/trim
  *
- * Created by Ozkan Can on 04/09/2016.
+ * @see Properties
+ * @author Ozkan Can
  */
 public class IoTConfig extends Properties {
 
@@ -21,12 +22,21 @@ public class IoTConfig extends Properties {
         AWS_IOT_PRIVATE_KEY_FILENAME
     }
 
-
     public IoTConfig(final String configFileName) throws IOException {
         this.load(new FileInputStream(configFileName));
     }
 
+    /**
+     * Searches for the property with the specified key in this IoTConfig.
+     *
+     * The method returns the default value if the the key is not specified or does not contain a value.
+     *
+     * @param field The key under which to retrieve the value. @See ConfigFields
+     * @param defaultValue The default value is returned when they key is not defined in the properties
+     * @return String or null, if key is null.
+     */
     public String get(final ConfigFields field, String defaultValue) {
+        if(field == null) return null;
         String value = getProperty(field.name(), defaultValue);
         if (value != null) {
             value = value.replace("\"", "");
@@ -35,7 +45,14 @@ public class IoTConfig extends Properties {
         return value;
     }
 
+    /**
+     * Searches for the property with the specified key in this IoTConfig.
+     *
+     * @param field The key under which to retrieve the value. @See ConfigFields
+     * @return String or null, if key is null.
+     */
     public String get(final ConfigFields field) {
+        if(field == null) return null;
         String value = getProperty(field.name());
         if (value != null) {
             value = value.replace("\"", "");

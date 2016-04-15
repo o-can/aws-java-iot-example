@@ -19,20 +19,39 @@ import static de.ozzc.iot.util.IoTConfig.ConfigFields.*;
  *  <li>The client connects to the endpoint specified in the config file.</li>
  *  <li>Subscribes to the topic "MyTopic".</li>
  *  <li>Publishes  a "Hello World" message to the topic "MyTopic.</li>
+ *  <li>Creates a device shadow state and updates it.</li>
  *  <li>Closes the connection.</li>
- *  <li>This example should serve as a starting point for using AWS IoT with Java.</li>
  * </ul>
- * Created by Ozkan Can on 04/09/2016.
+ * @author Ozkan Can
  */
 public class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
-    private static final int QOS_LEVEL0 = 0;
-    private static final int QOS_LEVEL1 = 1;
     private static final String TOPIC = "MyTopic";
-    private static final String MESSAGE = "Hello World!";
+
+    private static final byte[] HELLO_WORLD_MESSAGE = "Hello World!".getBytes();
     private static final byte[] EMPTY_MESSAGE = "".getBytes();
+
+
+    // AWS IoT deviates from the MQTT Specification on QOS 0
+    // Specification: Message is delivered at most once (zero or one times).
+    // AWS IoT: Message is delivered zero or more(!) times.
+    private static final int QOS_0 = 0;
+
+    // Specification: Message is delivered at  least once (one or more times)
+    private static final int QOS_1 = 1;
+
+    // AWS IoT does not support subscribing or publishing with QOS 2.
+    // Specification: Message is delivered once.
+    // private static final int QOS_2 = 2;
+
+    // AWS IoT message broker does not support persistent sessions as of writing (04/15/2016)
+    // Client will be disconnected from message broker if the clean session attribute is set to false
+    // http://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
+    private static final boolean CLEAN_SESSION = true;
+
+
     private static final long QUIESCE_TIMEOUT = 5000;
 
     public static void main(String[] args) {
@@ -43,44 +62,43 @@ public class Main {
         }
 
         try {
+
             IoTConfig config = new IoTConfig(args[0]);
             SSLSocketFactory sslSocketFactory = SslUtil.getSocketFactory(
                     config.get(AWS_IOT_ROOT_CA_FILENAME),
                     config.get(AWS_IOT_CERTIFICATE_FILENAME),
                     config.get(AWS_IOT_PRIVATE_KEY_FILENAME));
+
             MqttConnectOptions options = new MqttConnectOptions();
             options.setSocketFactory(sslSocketFactory);
-
-            // AWS IoT message broker does not support persistent sessions as of writing (04/15/2016)
-            // Client will be disconnected from message broker if the clean session attribute is set to false
-            // http://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
-            options.setCleanSession(true);
+            options.setCleanSession(CLEAN_SESSION);
 
             final String serverURI = "ssl://"+config.get(AWS_IOT_MQTT_HOST)+":"+config.get(AWS_IOT_MQTT_PORT);
             final String clientId = config.get(AWS_IOT_MQTT_CLIENT_ID);
 
             // AWS IoT does not support persistent sessions, therefore we use MemoryPersistence
             MqttAsyncClient asyncClient = new MqttAsyncClient(serverURI, clientId, new MemoryPersistence());
-            asyncClient.connect(options);
-            asyncClient.subscribe(TOPIC, QOS_LEVEL0);
-            asyncClient.publish(TOPIC, new MqttMessage(MESSAGE.getBytes()));
+            asyncClient.connect(options).waitForCompletion();
+            if(asyncClient.isConnected()) {
+                asyncClient.subscribe(TOPIC, QOS_0);
+                asyncClient.publish(TOPIC, new MqttMessage(HELLO_WORLD_MESSAGE));
 
-            //Shadow State Get
-            final String shadowGetTopic = "$aws/things/"+clientId+"/shadow/get";
-            final String shadowGetAcceptedTopic = "$aws/things/"+clientId+"/shadow/get/accepted";
-            final String shadowGetRejectedTopic = "$aws/things/"+clientId+"/shadow/get/rejected";
-            asyncClient.subscribe(shadowGetAcceptedTopic, QOS_LEVEL1);
-            asyncClient.subscribe(shadowGetRejectedTopic, QOS_LEVEL1);
-
-
-            MqttMessage EMPTY_MQTT_MESSAGE = new MqttMessage(EMPTY_MESSAGE);
-            EMPTY_MQTT_MESSAGE.setQos(QOS_LEVEL1);
-            asyncClient.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
+                //Shadow State Get
+                final String shadowGetTopic = "$aws/things/" + clientId + "/shadow/get";
+                final String shadowGetAcceptedTopic = "$aws/things/" + clientId + "/shadow/get/accepted";
+                final String shadowGetRejectedTopic = "$aws/things/" + clientId + "/shadow/get/rejected";
+                asyncClient.subscribe(shadowGetAcceptedTopic, QOS_1);
+                asyncClient.subscribe(shadowGetRejectedTopic, QOS_1);
 
 
-            // Remove the disconnect and close, if you want to continue listening/subscribing
-            //client.disconnect(QUIESCE_TIMEOUT);
-            //client.close();
+                MqttMessage EMPTY_MQTT_MESSAGE = new MqttMessage(EMPTY_MESSAGE);
+                EMPTY_MQTT_MESSAGE.setQos(QOS_1);
+                asyncClient.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
+
+                // Remove the disconnect and close, if you want to continue listening/subscribing
+                asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
+                asyncClient.close();
+            }
         }
         catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
