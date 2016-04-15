@@ -93,7 +93,7 @@ public class Main {
         try {
             // AWS IoT does not support persistent sessions, therefore we use MemoryPersistence
             final MqttAsyncClient asyncClient = new MqttAsyncClient(serverURI, clientId, new MemoryPersistence());
-            asyncClient.connect(options, new IMqttActionListener() {
+            asyncClient.connect(options, null, new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     try {
