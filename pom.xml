@@ -29,6 +29,7 @@
         <logback-classic.version>1.1.7</logback-classic.version>
         <slf4j-api.version>1.7.21</slf4j-api.version>
         <gson.version>2.6.2</gson.version>
+        <annotations.version>15.0</annotations.version>
     </properties>
 
     <dependencyManagement>
@@ -73,6 +74,11 @@
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>${gson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>${annotations.version}</version>
         </dependency>
         <!-- Pi4J Core Library: RasPi GPIO control for java -->
         <!--

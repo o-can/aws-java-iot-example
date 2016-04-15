@@ -30,8 +30,8 @@ public class Main {
 
     private static final String TOPIC = "MyTopic";
 
-    private static final byte[] HELLO_WORLD_MESSAGE = "Hello World!".getBytes();
-    private static final byte[] EMPTY_MESSAGE = "".getBytes();
+    private static final MqttMessage HELLO_WORLD_MQTT_MESSAGE = new MqttMessage("Hello World!".getBytes());
+    private static final MqttMessage EMPTY_MQTT_MESSAGE = new MqttMessage("".getBytes());
 
 
     // AWS IoT deviates from the MQTT Specification on QOS 0
@@ -40,6 +40,7 @@ public class Main {
     private static final int QOS_0 = 0;
 
     // Specification: Message is delivered at  least once (one or more times)
+    // Default QoS for MqttMessage
     private static final int QOS_1 = 1;
 
     // AWS IoT does not support subscribing or publishing with QOS 2.
@@ -80,8 +81,9 @@ public class Main {
             MqttAsyncClient asyncClient = new MqttAsyncClient(serverURI, clientId, new MemoryPersistence());
             asyncClient.connect(options).waitForCompletion();
             if(asyncClient.isConnected()) {
-                asyncClient.subscribe(TOPIC, QOS_0);
-                asyncClient.publish(TOPIC, new MqttMessage(HELLO_WORLD_MESSAGE));
+
+                asyncClient.subscribe(TOPIC, QOS_1);
+                asyncClient.publish(TOPIC, HELLO_WORLD_MQTT_MESSAGE);
 
                 //Shadow State Get
                 final String shadowGetTopic = "$aws/things/" + clientId + "/shadow/get";
@@ -91,8 +93,6 @@ public class Main {
                 asyncClient.subscribe(shadowGetRejectedTopic, QOS_1);
 
 
-                MqttMessage EMPTY_MQTT_MESSAGE = new MqttMessage(EMPTY_MESSAGE);
-                EMPTY_MQTT_MESSAGE.setQos(QOS_1);
                 asyncClient.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
 
                 // Remove the disconnect and close, if you want to continue listening/subscribing
