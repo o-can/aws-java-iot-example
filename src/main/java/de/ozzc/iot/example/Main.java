@@ -14,14 +14,15 @@ import static de.ozzc.iot.util.IoTConfig.ConfigFields.*;
 /**
  * Simple MQTT Client Example for Publish/Subscribe on AWS IoT.
  * This example should serve as a starting point for using AWS IoT with Java.
- *
+ * <p>
  * <ul>
- *  <li>The client connects to the endpoint specified in the config file.</li>
- *  <li>Subscribes to the topic "MyTopic".</li>
- *  <li>Publishes  a "Hello World" message to the topic "MyTopic.</li>
- *  <li>Creates a device shadow state and updates it.</li>
- *  <li>Closes the connection.</li>
+ * <li>The client connects to the endpoint specified in the config file.</li>
+ * <li>Subscribes to the topic "MyTopic".</li>
+ * <li>Publishes  a "Hello World" message to the topic "MyTopic.</li>
+ * <li>Creates a device shadow state and updates it.</li>
+ * <li>Closes the connection.</li>
  * </ul>
+ *
  * @author Ozkan Can
  */
 public class Main {
@@ -56,61 +57,87 @@ public class Main {
     // @see org.eclipse.paho.client.mqttv3.IMqttAsyncClient#disconnect(long)
     private static final long QUIESCE_TIMEOUT = 5000;
 
-    public static void main(String[] args) {
-
-        if(args.length < 1)
-        {
-            showHelp();
-        }
-
-        try {
-
-            IoTConfig config = new IoTConfig(args[0]);
-            SSLSocketFactory sslSocketFactory = SslUtil.getSocketFactory(
-                    config.get(AWS_IOT_ROOT_CA_FILENAME),
-                    config.get(AWS_IOT_CERTIFICATE_FILENAME),
-                    config.get(AWS_IOT_PRIVATE_KEY_FILENAME));
-
-            MqttConnectOptions options = new MqttConnectOptions();
-            options.setSocketFactory(sslSocketFactory);
-            options.setCleanSession(CLEAN_SESSION);
-
-            final String serverURI = "ssl://"+config.get(AWS_IOT_MQTT_HOST)+":"+config.get(AWS_IOT_MQTT_PORT);
-            final String clientId = config.get(AWS_IOT_MQTT_CLIENT_ID);
-
-            // AWS IoT does not support persistent sessions, therefore we use MemoryPersistence
-            MqttAsyncClient asyncClient = new MqttAsyncClient(serverURI, clientId, new MemoryPersistence());
-            asyncClient.connect(options).waitForCompletion();
-            if(asyncClient.isConnected()) {
-
-                asyncClient.subscribe(TOPIC, QOS_1);
-                asyncClient.publish(TOPIC, HELLO_WORLD_MQTT_MESSAGE);
-
-                //Shadow State Get
-                final String shadowGetTopic = "$aws/things/" + clientId + "/shadow/get";
-                final String shadowGetAcceptedTopic = "$aws/things/" + clientId + "/shadow/get/accepted";
-                final String shadowGetRejectedTopic = "$aws/things/" + clientId + "/shadow/get/rejected";
-                asyncClient.subscribe(shadowGetAcceptedTopic, QOS_1);
-                asyncClient.subscribe(shadowGetRejectedTopic, QOS_1);
-
-
-                asyncClient.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
-
-                // Remove the disconnect and close, if you want to continue listening/subscribing
-                asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
-                asyncClient.close();
-            }
-        }
-        catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
-            System.exit(-1);
-        }
-    }
-
-    private static void showHelp()
-    {
+    // Show Usage/Help & Exit
+    private static void showHelp() {
         System.out.println("Usage: java -jar aws-iot-java-example.jar <config-file>");
         System.out.println("\nSee config-example.properties for an example of a config file.");
         System.exit(0);
     }
+
+    public static void main(String[] args) {
+
+        if (args.length < 1) {
+            showHelp();
+        }
+
+        IoTConfig config = null;
+        SSLSocketFactory sslSocketFactory = null;
+        try {
+            config = new IoTConfig(args[0]);
+            sslSocketFactory = SslUtil.getSocketFactory(
+                    config.get(AWS_IOT_ROOT_CA_FILENAME),
+                    config.get(AWS_IOT_CERTIFICATE_FILENAME),
+                    config.get(AWS_IOT_PRIVATE_KEY_FILENAME));
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage(), e);
+            System.exit(-1);
+        }
+
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setSocketFactory(sslSocketFactory);
+        options.setCleanSession(CLEAN_SESSION);
+
+        final String serverURI = "ssl://" + config.get(AWS_IOT_MQTT_HOST) + ":" + config.get(AWS_IOT_MQTT_PORT);
+        final String clientId = config.get(AWS_IOT_MQTT_CLIENT_ID);
+
+        try {
+            // AWS IoT does not support persistent sessions, therefore we use MemoryPersistence
+            final MqttAsyncClient asyncClient = new MqttAsyncClient(serverURI, clientId, new MemoryPersistence());
+            asyncClient.connect(options, new IMqttActionListener() {
+                @Override
+                public void onSuccess(IMqttToken asyncActionToken) {
+                    try {
+                        asyncClient.setCallback(new ExampleCallback());
+                        asyncClient.subscribe(TOPIC, QOS_1);
+                        asyncClient.publish(TOPIC, HELLO_WORLD_MQTT_MESSAGE);
+
+
+                        //Shadow State Get
+                        final String shadowGetTopic = "$aws/things/" + clientId + "/shadow/get";
+                        final String shadowGetAcceptedTopic = "$aws/things/" + clientId + "/shadow/get/accepted";
+                        final String shadowGetRejectedTopic = "$aws/things/" + clientId + "/shadow/get/rejected";
+                        asyncClient.subscribe(shadowGetAcceptedTopic, QOS_1);
+                        asyncClient.subscribe(shadowGetRejectedTopic, QOS_1);
+
+
+                        asyncClient.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
+
+                        // Remove the disconnect and close, if you want to continue listening/subscribing
+                        asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
+                        asyncClient.close();
+                    } catch (MqttException e) {
+                        LOGGER.error(e.getMessage(), e);
+                    } finally {
+                        try {
+                            asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
+                            asyncClient.close();
+                        } catch (MqttException e) {
+                            LOGGER.error(e.getMessage(), e);
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+
+                }
+            });
+        }
+        catch(MqttException e)
+        {
+            LOGGER.error("Could not setup and connect MQTT Client.", e);
+            System.exit(-1);
+        }
+    }
+
 }
