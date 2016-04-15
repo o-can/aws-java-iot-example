@@ -133,24 +133,9 @@ public class Main {
 
                         asyncClient.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
 
-                        // Remove the disconnect and close, if you want to continue listening/subscribing
-                        asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
-                        asyncClient.close();
                     } catch (MqttException e) {
                         LOGGER.error(e.getMessage(), e);
                     }
-/*
-                    finally {
-                        if (asyncClient.isConnected()) {
-                            try {
-                                asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
-                                asyncClient.close();
-                            } catch (MqttException e) {
-                                LOGGER.error(e.getMessage(), e);
-                            }
-                        }
-                    }
-*/
                 }
 
                 @Override
@@ -159,6 +144,14 @@ public class Main {
                     LOGGER.error(exception.getMessage(), exception);
                 }
             });
+            if (asyncClient.isConnected()) {
+                try {
+                    asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
+                    asyncClient.close();
+                } catch (MqttException e) {
+                    LOGGER.error(e.getMessage(), e);
+                }
+            }
         } catch (MqttException e) {
             LOGGER.error("Could not setup and connect MQTT Client.", e);
             System.exit(-1);
