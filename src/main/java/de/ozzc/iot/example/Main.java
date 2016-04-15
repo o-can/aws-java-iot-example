@@ -118,11 +118,13 @@ public class Main {
                     } catch (MqttException e) {
                         LOGGER.error(e.getMessage(), e);
                     } finally {
-                        try {
-                            asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
-                            asyncClient.close();
-                        } catch (MqttException e) {
-                            LOGGER.error(e.getMessage(), e);
+                        if (asyncClient.isConnected()) {
+                            try {
+                                asyncClient.disconnect(QUIESCE_TIMEOUT).waitForCompletion();
+                                asyncClient.close();
+                            } catch (MqttException e) {
+                                LOGGER.error(e.getMessage(), e);
+                            }
                         }
                     }
                 }
@@ -132,9 +134,7 @@ public class Main {
 
                 }
             });
-        }
-        catch(MqttException e)
-        {
+        } catch (MqttException e) {
             LOGGER.error("Could not setup and connect MQTT Client.", e);
             System.exit(-1);
         }
