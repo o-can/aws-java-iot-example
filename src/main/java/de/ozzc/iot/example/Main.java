@@ -3,6 +3,7 @@ package de.ozzc.iot.example;
 import de.ozzc.iot.util.IoTConfig;
 import de.ozzc.iot.util.SslUtil;
 import org.eclipse.paho.client.mqttv3.*;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,28 +50,32 @@ public class Main {
                     config.get(AWS_IOT_PRIVATE_KEY_FILENAME));
             MqttConnectOptions options = new MqttConnectOptions();
             options.setSocketFactory(sslSocketFactory);
+
+            // AWS IoT message broker does not support persistent sessions as of writing (04/15/2016)
+            // Client will be disconnected from message broker if the clean session attribute is set to false
+            // http://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
             options.setCleanSession(true);
 
-            final String serverUrl = "ssl://"+config.get(AWS_IOT_MQTT_HOST)+":"+config.get(AWS_IOT_MQTT_PORT);
+            final String serverURI = "ssl://"+config.get(AWS_IOT_MQTT_HOST)+":"+config.get(AWS_IOT_MQTT_PORT);
             final String clientId = config.get(AWS_IOT_MQTT_CLIENT_ID);
 
-            MqttClient client = new MqttClient(serverUrl, clientId);
-            client.setCallback(new ExampleCallback());
-            client.connect(options);
-            client.subscribe(TOPIC, QOS_LEVEL0);
-            client.publish(TOPIC, new MqttMessage(MESSAGE.getBytes()));
+            // AWS IoT does not support persistent sessions, therefore we use MemoryPersistence
+            MqttAsyncClient asyncClient = new MqttAsyncClient(serverURI, clientId, new MemoryPersistence());
+            asyncClient.connect(options);
+            asyncClient.subscribe(TOPIC, QOS_LEVEL0);
+            asyncClient.publish(TOPIC, new MqttMessage(MESSAGE.getBytes()));
 
             //Shadow State Get
             final String shadowGetTopic = "$aws/things/"+clientId+"/shadow/get";
             final String shadowGetAcceptedTopic = "$aws/things/"+clientId+"/shadow/get/accepted";
             final String shadowGetRejectedTopic = "$aws/things/"+clientId+"/shadow/get/rejected";
-            client.subscribe(shadowGetAcceptedTopic, QOS_LEVEL1);
-            client.subscribe(shadowGetRejectedTopic, QOS_LEVEL1);
+            asyncClient.subscribe(shadowGetAcceptedTopic, QOS_LEVEL1);
+            asyncClient.subscribe(shadowGetRejectedTopic, QOS_LEVEL1);
 
 
             MqttMessage EMPTY_MQTT_MESSAGE = new MqttMessage(EMPTY_MESSAGE);
             EMPTY_MQTT_MESSAGE.setQos(QOS_LEVEL1);
-            client.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
+            asyncClient.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
 
 
             // Remove the disconnect and close, if you want to continue listening/subscribing
