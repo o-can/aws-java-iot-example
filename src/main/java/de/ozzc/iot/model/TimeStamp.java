@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName;
 /**
  * Created by ocan on 21.04.2016.
  */
-public class Timestamp {
+public class TimeStamp {
 
     @SerializedName("timestamp")
     private Long timestamp;

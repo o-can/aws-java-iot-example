@@ -10,24 +10,24 @@ import java.util.Map;
 public class MetaData {
 
     @SerializedName("desired")
-    private Map<String, Timestamp> desired;
+    private Map<String, TimeStamp> desired;
 
     @SerializedName("reported")
-    private Map<String, Timestamp> reported;
+    private Map<String, TimeStamp> reported;
 
-    public Map<String, Timestamp> getDesired() {
+    public Map<String, TimeStamp> getDesired() {
         return desired;
     }
 
-    public void setDesired(Map<String, Timestamp> desired) {
+    public void setDesired(Map<String, TimeStamp> desired) {
         this.desired = desired;
     }
 
-    public Map<String, Timestamp> getReported() {
+    public Map<String, TimeStamp> getReported() {
         return reported;
     }
 
-    public void setReported(Map<String, Timestamp> reported) {
+    public void setReported(Map<String, TimeStamp> reported) {
         this.reported = reported;
     }
 }
