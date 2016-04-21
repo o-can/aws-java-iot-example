@@ -98,7 +98,16 @@ public class Main {
                 public void onSuccess(IMqttToken asyncActionToken) {
                     try {
                         LOGGER.info("Successfully connected to "+serverURI);
-                        asyncClient.setCallback(new ExampleCallback());
+                        asyncClient.setCallback(new ExampleCallback(clientId));
+                        //Shadow State Get
+                        final String shadowGetTopic = "$aws/things/" + clientId + "/shadow/get";
+                        final String shadowGetAcceptedTopic = "$aws/things/" + clientId + "/shadow/get/accepted";
+                        final String shadowGetRejectedTopic = "$aws/things/" + clientId + "/shadow/get/rejected";
+                        asyncClient.subscribe(shadowGetAcceptedTopic, QOS_1);
+                        asyncClient.subscribe(shadowGetRejectedTopic, QOS_1);
+
+                        asyncClient.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
+
                         asyncClient.subscribe(TOPIC, QOS_1, null, new IMqttActionListener() {
                             @Override
                             public void onSuccess(IMqttToken asyncActionToken) {
@@ -121,18 +130,6 @@ public class Main {
                                 LOGGER.info("Failed to publish message on Topic: "+TOPIC);
                             }
                         });
-
-
-                        //Shadow State Get
-                        final String shadowGetTopic = "$aws/things/" + clientId + "/shadow/get";
-                        final String shadowGetAcceptedTopic = "$aws/things/" + clientId + "/shadow/get/accepted";
-                        final String shadowGetRejectedTopic = "$aws/things/" + clientId + "/shadow/get/rejected";
-                        asyncClient.subscribe(shadowGetAcceptedTopic, QOS_1);
-                        asyncClient.subscribe(shadowGetRejectedTopic, QOS_1);
-
-
-                        asyncClient.publish(shadowGetTopic, EMPTY_MQTT_MESSAGE);
-
                     } catch (MqttException e) {
                         LOGGER.error(e.getMessage(), e);
                     }

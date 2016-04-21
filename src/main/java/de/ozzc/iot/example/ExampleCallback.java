@@ -1,5 +1,8 @@
 package de.ozzc.iot.example;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import de.ozzc.iot.model.DeviceShadowErrorResponse;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -14,6 +17,19 @@ class ExampleCallback implements MqttCallback {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExampleCallback.class);
 
+    private final String clientId;
+    private final String shadowGetRejectedTopic;
+    private final Gson gson = new Gson();
+
+    public ExampleCallback(String clientId)
+    {
+        if(clientId == null)
+            throw new IllegalArgumentException("clientId cannot be null");
+        this.clientId = clientId;
+        this.shadowGetRejectedTopic = "$aws/things/" + clientId + "/shadow/get/rejected";
+    }
+
+
     @Override
     public void connectionLost(Throwable cause) {
         LOGGER.info("Connection Lost.", cause);
@@ -21,7 +37,25 @@ class ExampleCallback implements MqttCallback {
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        LOGGER.info("Message arrived on topic {}. Contents: {}", topic, new String(message.getPayload()));
+        boolean arrivedOnUnknownTopic = true;
+        if(topic.equals(shadowGetRejectedTopic))
+        {
+            arrivedOnUnknownTopic = false;
+            if(message != null)
+            {
+                byte[] payload = message.getPayload();
+                if(payload != null) {
+                    String json = new String(payload);
+                    DeviceShadowErrorResponse deviceShadowErrorResponse = gson.fromJson(json, DeviceShadowErrorResponse.class);
+                    LOGGER.info(deviceShadowErrorResponse.toString());
+                }
+            }
+        }
+        if(arrivedOnUnknownTopic)
+        {
+                LOGGER.info("Message arrived on topic {}. Contents: {}", topic, new String(message.getPayload()));
+        }
+
     }
 
     @Override
