@@ -3,7 +3,7 @@ package de.ozzc.iot.model;
 /**
  * Created by ocan on 21.04.2016.
  */
-public class DeviceShadowErrorResponse {
+public class ErrorResponse {
 
     private int code;
 
@@ -47,11 +47,11 @@ public class DeviceShadowErrorResponse {
 
     @Override
     public String toString() {
-        return "DeviceShadowErrorResponse{" +
+        return "ErrorResponse{" +
                 "code=" + code +
-                ", message='" + ((message!= null) ? message : "(null)")+ '\'' +
+                ", message='" + message + '\'' +
                 ", timestamp=" + timestamp +
-                ", clientToken='" + ((clientToken != null) ? clientToken : "(null)") + '\'' +
+                ", clientToken='" + clientToken + '\'' +
                 '}';
     }
 }

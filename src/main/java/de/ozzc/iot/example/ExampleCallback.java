@@ -1,8 +1,7 @@
 package de.ozzc.iot.example;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import de.ozzc.iot.model.DeviceShadowErrorResponse;
+import de.ozzc.iot.model.ErrorResponse;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -46,8 +45,8 @@ class ExampleCallback implements MqttCallback {
                 byte[] payload = message.getPayload();
                 if(payload != null) {
                     String json = new String(payload);
-                    DeviceShadowErrorResponse deviceShadowErrorResponse = gson.fromJson(json, DeviceShadowErrorResponse.class);
-                    LOGGER.info(deviceShadowErrorResponse.toString());
+                    ErrorResponse errorResponse = gson.fromJson(json, ErrorResponse.class);
+                    LOGGER.info(errorResponse.toString());
                 }
             }
         }
