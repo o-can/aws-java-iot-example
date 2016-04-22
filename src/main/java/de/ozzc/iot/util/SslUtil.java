@@ -78,7 +78,6 @@ public class SslUtil {
         X509Certificate rootCaCert = getX509CertificateFromPEM(rootCaCertPEM);
         X509Certificate clientCaCert = getX509CertificateFromPEM(clientCertPEM);
 
-        // Root CA certificate is used to authenticate the server
         final KeyStore caKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
         caKeyStore.load(null, null);
         caKeyStore.setCertificateEntry("ca-certificate", rootCaCert);
