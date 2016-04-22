@@ -13,17 +13,17 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
+import java.io.StringReader;
+import java.security.*;
 import java.security.cert.Certificate;
-import java.security.KeyFactory;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Scanner;
 
 /**
  * SSLUtil contains a function to create a SSLSocketFactory to be used by the Mqtt Client for authentication.
@@ -51,13 +51,6 @@ public class SslUtil {
                                                     final String clientCertFile,
                                                     final String privateKeyFile) throws Exception {
 
-        if (Security.getProvider(BC_PROVIDER_ID) == null) {
-            Security.addProvider(new BouncyCastleProvider());
-        }
-
-        X509Certificate rootCaCert = getX509Certificate(rootCaCertFile);
-        X509Certificate clientCaCert = getX509Certificate(clientCertFile);
-
         PEMKeyPair clientKeyPair;
         try (PEMParser clientPrivateKeyParser =
                      new PEMParser(new FileReader(privateKeyFile))) {
@@ -66,6 +59,24 @@ public class SslUtil {
             LOGGER.error("Failed to load private key file at {} with error: {}", privateKeyFile, e.getMessage());
             throw e;
         }
+        final KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        final PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(clientKeyPair.getPrivateKeyInfo().getEncoded());
+        final PrivateKey clientKey = keyFactory.generatePrivate(spec);
+
+        return getSocketFactory(getPEM(rootCaCertFile), getPEM(clientCertFile), clientKey);
+    }
+
+
+    public static SSLSocketFactory getSocketFactory(final String rootCaCertPEM,
+                                                    final String clientCertPEM,
+                                                    final PrivateKey privateKey) throws Exception {
+
+        if (Security.getProvider(BC_PROVIDER_ID) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+
+        X509Certificate rootCaCert = getX509CertificateFromPEM(rootCaCertPEM);
+        X509Certificate clientCaCert = getX509CertificateFromPEM(clientCertPEM);
 
         // Root CA certificate is used to authenticate the server
         final KeyStore caKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -74,15 +85,10 @@ public class SslUtil {
         final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         trustManagerFactory.init(caKeyStore);
 
-        // client key and certificates are sent to server for client authentication on the server
-        final KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        final PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(clientKeyPair.getPrivateKeyInfo().getEncoded());
-        final PrivateKey clientKey = keyFactory.generatePrivate(spec);
-
         KeyStore clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
         clientKeyStore.load(null, null);
         clientKeyStore.setCertificateEntry("client", clientCaCert);
-        clientKeyStore.setKeyEntry("key", clientKey, KEY_STORE_PASSWORD, new Certificate[]{clientCaCert});
+        clientKeyStore.setKeyEntry("key", privateKey, KEY_STORE_PASSWORD, new Certificate[]{clientCaCert});
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         keyManagerFactory.init(clientKeyStore, KEY_STORE_PASSWORD);
 
@@ -92,13 +98,25 @@ public class SslUtil {
         return context.getSocketFactory();
     }
 
-    private static X509Certificate getX509Certificate(final String certFileName) throws CertificateException, IOException {
-        try (PEMParser certParser = new PEMParser(new FileReader(certFileName))) {
+    private static X509Certificate getX509CertificateFromPEM(final String certPEM) throws CertificateException, IOException {
+        try (PEMParser certParser = new PEMParser(new StringReader(certPEM))) {
             return new JcaX509CertificateConverter().setProvider(BC_PROVIDER_ID).getCertificate((X509CertificateHolder) certParser.readObject());
         } catch (IOException | CertificateException e) {
-            LOGGER.error("Failed to load certificate file at {} with error: {}", certFileName, e.getMessage());
+            LOGGER.error("Failed to load certificate {} with error: {}", certPEM, e.getMessage());
             throw e;
         }
     }
+
+    private static String getPEM(final String certFileName) throws FileNotFoundException {
+        try(Scanner certFileScanner = new Scanner(new FileReader(certFileName)).useDelimiter("\\A")) {
+            return certFileScanner.next();
+        }
+        catch (FileNotFoundException e) {
+            LOGGER.error(e.getMessage(), e);
+            throw e;
+        }
+    }
+
+
 
 }
