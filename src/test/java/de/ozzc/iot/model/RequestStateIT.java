@@ -20,7 +20,7 @@ import java.util.UUID;
 /**
  * Created by ocan on 21.04.2016.
  */
-public class RequestStateTest {
+public class RequestStateIT {
 
     public static final String rootCertLink = "https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem";
     private AWSIotClient iotClient = null;
