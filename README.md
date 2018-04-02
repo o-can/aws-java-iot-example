@@ -1,3 +1,10 @@
+# Update 04/02/2018
+
+The official AWS IoT Device SDK for Java is available here: [https://github.com/aws/aws-iot-device-sdk-java]
+
+This example project is not continued. Please refer to official SDK for advanced topics like Shadows.
+
+---
 # aws-java-iot-example
 Starting point example project in Java for the AWS IoT service to be used on a Rasberry Pi or any internet connectivity capable device with an up-to-date Java Runtime Environment.
 
